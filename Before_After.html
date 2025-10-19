@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Imagen Antes y Después</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .editor-container {
+            width: 627px;
+            height: 1200px;
+            touch-action: none;
+        }
+        .slider-handle {
+            cursor: move;
+        }
+        #preview-wrapper {
+            width: 627px;
+            height: 1200px;
+            box-sizing: content-box;
+        }
+        /* Ensure images are not auto-constrained by Tailwind Preflight */
+        #before-image, #after-image, #preview-before-image, #preview-after-image {
+            max-width: none;
+            max-height: none;
+        }
+        input[type="file"]::file-selector-button {
+            background-color: #4F46E5;
+            color: white;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: #4338CA;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-xl p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl lg:text-4xl font-bold text-indigo-600">Creador de "Antes y Después"</h1>
+            <p class="text-gray-500 mt-2">Sube dos imágenes, ajústalas y crea tu comparativa con deslizador.</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <label for="before-upload" class="block text-lg font-semibold mb-2 text-center">1. Imagen "Antes"</label>
+                <input type="file" id="before-upload" accept="image/*" class="w-full text-sm text-gray-500">
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <label for="after-upload" class="block text-lg font-semibold mb-2 text-center">2. Imagen "Después"</label>
+                <input type="file" id="after-upload" accept="image/*" class="w-full text-sm text-gray-500">
+            </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-8 justify-center">
+            
+            <div class="flex-1 flex flex-col md:flex-row gap-8 justify-around items-center">
+                <div class="flex flex-col items-center">
+                    <h3 class="text-xl font-semibold mb-3">Ajusta "Antes"</h3>
+                    <div id="before-editor" class="editor-container bg-gray-200 rounded-lg overflow-hidden relative cursor-move border-2 border-gray-300">
+                        <img id="before-image" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="transform: translate(-50%, -50%) scale(1);">
+                    </div>
+                    <div class="w-full mt-4">
+                        <label for="before-zoom" class="text-sm">Zoom: <span id="before-zoom-value">1.00</span></label>
+                        <input type="range" id="before-zoom" min="0.1" max="5" step="0.05" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <h3 class="text-xl font-semibold mb-3">Ajusta "Después"</h3>
+                    <div id="after-editor" class="editor-container bg-gray-200 rounded-lg overflow-hidden relative cursor-move border-2 border-gray-300">
+                        <img id="after-image" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="transform: translate(-50%, -50%) scale(1);">
+                    </div>
+                    <div class="w-full mt-4">
+                        <label for="after-zoom" class="text-sm">Zoom: <span id="after-zoom-value">1.00</span></label>
+                        <input type="range" id="after-zoom" min="0.1" max="5" step="0.05" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col items-center mt-8 lg:mt-0">
+                <h3 class="text-xl font-semibold mb-3">3. Previsualización Interactiva</h3>
+                <div id="preview-wrapper" class="w-[627px] h-[1200px] relative bg-gray-200 rounded-lg overflow-hidden border-2 border-indigo-500 shadow-lg">
+                    <div id="preview-before" class="w-full h-full absolute top-0 left-0 overflow-hidden">
+                        <img id="preview-before-image" class="absolute top-1/2 left-1/2">
+                    </div>
+                    <div id="preview-after" class="w-full h-full absolute top-0 left-0 overflow-hidden">
+                        <img id="preview-after-image" class="absolute top-1/2 left-1/2">
+                    </div>
+                    <div id="slider-handle" class="slider-handle w-[141%] h-1.5 bg-white absolute shadow-md" style="left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(90deg);">
+                        <div class="w-8 h-8 rounded-full bg-white border-2 border-indigo-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-indigo-500" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.354 1.646a.5.5 0 0 1 0 .708L2.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0zm4.792 0a.5.5 0 0 0 0 .708L14.293 8l-5.647 5.646a.5.5 0 0 0 .708.708l6-6a.5.5 0 0 0 0-.708l-6-6a.5.5 0 0 0-.708 0z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <p id="slider-value-display" class="text-sm mt-2 text-gray-500">50%</p>
+            </div>
+        </div>
+        
+        <div class="mt-10 pt-6 border-t border-gray-200">
+            <h3 class="text-2xl font-semibold text-center mb-6">4. Configuración Final y Descarga</h3>
+            <div class="flex flex-col md:flex-row items-center justify-center gap-8">
+                <div class="flex flex-col items-center">
+                    <label for="slider-angle" class="text-lg font-medium">Ángulo del deslizador: <span id="angle-display" class="font-bold text-indigo-600">0°</span></label>
+                    <input type="range" id="slider-angle" min="0" max="180" value="0" class="w-64 mt-2 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+                <button id="generate-btn" class="bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-lg hover:bg-green-600 transition-colors duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    Generar y Descargar Imagen
+                </button>
+            </div>
+            <a id="download-link" style="display: none;"></a>
+        </div>
+
+    </div>
+    
+    <canvas id="canvas" class="hidden" width="627" height="1200"></canvas>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const beforeUpload = document.getElementById('before-upload');
+            const afterUpload = document.getElementById('after-upload');
+            const beforeImage = document.getElementById('before-image');
+            const afterImage = document.getElementById('after-image');
+            const beforeEditor = document.getElementById('before-editor');
+            const afterEditor = document.getElementById('after-editor');
+            const beforeZoom = document.getElementById('before-zoom');
+            const afterZoom = document.getElementById('after-zoom');
+            const beforeZoomValue = document.getElementById('before-zoom-value');
+            const afterZoomValue = document.getElementById('after-zoom-value');
+            
+            const previewBeforeImg = document.getElementById('preview-before-image');
+            const previewAfterImg = document.getElementById('preview-after-image');
+            const previewAfter = document.getElementById('preview-after');
+            const sliderHandle = document.getElementById('slider-handle');
+            const previewWrapper = document.getElementById('preview-wrapper');
+            const sliderValueDisplay = document.getElementById('slider-value-display');
+
+            const sliderAngle = document.getElementById('slider-angle');
+            const angleDisplay = document.getElementById('angle-display');
+            const generateBtn = document.getElementById('generate-btn');
+            const downloadLink = document.getElementById('download-link');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const EDITOR_WIDTH = 627;
+            const EDITOR_HEIGHT = 1200;
+
+            let beforeState = { x: 0, y: 0, scale: 1, img: null };
+            let afterState = { x: 0, y: 0, scale: 1, img: null };
+            let isDraggingSlider = false;
+            let sliderAngleValue = 0;
+            let sliderPercentage = 50;
+
+            function setupImageUpload(uploadEl, imageEl, state, previewImgEl, zoomInput, zoomValueEl) {
+                uploadEl.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                state.img = img;
+                                state.scale = 1; // Tamaño original, sin ajuste inicial
+                                zoomInput.value = state.scale;
+                                zoomValueEl.textContent = state.scale.toFixed(2);
+                                imageEl.src = img.src;
+                                previewImgEl.src = img.src;
+                                updateAll();
+                                checkGenerateButton();
+                            };
+                            img.src = event.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            setupImageUpload(beforeUpload, beforeImage, beforeState, previewBeforeImg, beforeZoom, beforeZoomValue);
+            setupImageUpload(afterUpload, afterImage, afterState, previewAfterImg, afterZoom, afterZoomValue);
+            
+            function setupEditor(editorEl, state) {
+                let isPanning = false, startX, startY;
+                editorEl.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    isPanning = true;
+                    startX = e.clientX - state.x;
+                    startY = e.clientY - state.y;
+                    editorEl.style.cursor = 'grabbing';
+                });
+                window.addEventListener('mousemove', (e) => {
+                    if (isPanning) {
+                        state.x = e.clientX - startX;
+                        state.y = e.clientY - startY;
+                        updateAll();
+                    }
+                });
+                window.addEventListener('mouseup', () => { isPanning = false; editorEl.style.cursor = 'move'; });
+            }
+
+            setupEditor(beforeEditor, beforeState);
+            setupEditor(afterEditor, afterState);
+            
+            beforeZoom.addEventListener('input', (e) => { 
+                beforeState.scale = parseFloat(e.target.value);
+                beforeZoomValue.textContent = beforeState.scale.toFixed(2);
+                updateAll(); 
+            });
+            afterZoom.addEventListener('input', (e) => { 
+                afterState.scale = parseFloat(e.target.value);
+                afterZoomValue.textContent = afterState.scale.toFixed(2);
+                updateAll(); 
+            });
+            
+            sliderAngle.addEventListener('input', (e) => {
+                sliderAngleValue = parseInt(e.target.value, 10);
+                angleDisplay.textContent = `${sliderAngleValue}°`;
+                updateSlider(sliderPercentage);
+            });
+
+            sliderHandle.addEventListener('mousedown', (e) => { e.preventDefault(); isDraggingSlider = true; });
+            window.addEventListener('mouseup', () => { isDraggingSlider = false; });
+            
+            previewWrapper.addEventListener('mousemove', (e) => {
+                if (!isDraggingSlider) return;
+                const rect = previewWrapper.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+
+                const angleRad = sliderAngleValue * Math.PI / 180;
+                const w = rect.width;
+                const h = rect.height;
+
+                const perp_dx = -Math.sin(angleRad);
+                const perp_dy = Math.cos(angleRad);
+                
+                const mouse_dx = mx - w / 2;
+                const mouse_dy = my - h / 2;
+
+                const projected_dist = mouse_dx * perp_dx + mouse_dy * perp_dy;
+                const travelRange = (Math.abs(w * perp_dx) + Math.abs(h * perp_dy)) / 2;
+                
+                let position = 50;
+                if(travelRange > 1) {
+                    position = (projected_dist / travelRange + 1) / 2 * 100;
+                }
+
+                sliderPercentage = Math.max(0, Math.min(100, position));
+                updateSlider(sliderPercentage);
+            });
+
+            function computeImageRect(state, containerW, containerH) {
+                const s = state.scale || 1;
+                const w = state.img ? state.img.naturalWidth * s : 0;
+                const h = state.img ? state.img.naturalHeight * s : 0;
+                const x = containerW / 2 - w / 2 + state.x;
+                const y = containerH / 2 - h / 2 + state.y;
+                return { x, y, w, h };
+            }
+
+            function updateEditorImage(imageEl, state) {
+                if (!state.img) return;
+                const { x, y, w, h } = computeImageRect(state, EDITOR_WIDTH, EDITOR_HEIGHT);
+                imageEl.style.width = `${w}px`;
+                imageEl.style.height = `${h}px`;
+                imageEl.style.left = `${x}px`;
+                imageEl.style.top = `${y}px`;
+                imageEl.style.transform = 'none';
+            }
+            
+            function updatePreviewImage(previewImgEl, state) {
+                if (!state.img) return;
+                const w = previewWrapper.clientWidth;
+                const h = previewWrapper.clientHeight;
+                const { x, y, w: iw, h: ih } = computeImageRect(state, w, h);
+                previewImgEl.style.width = `${iw}px`;
+                previewImgEl.style.height = `${ih}px`;
+                previewImgEl.style.left = `${x}px`;
+                previewImgEl.style.top = `${y}px`;
+                previewImgEl.style.transform = 'none';
+            }
+
+            function calculateClipData(angle, percentage, w, h) {
+                const angleRad = angle * Math.PI / 180;
+                const cos = Math.cos(angleRad);
+                const sin = Math.sin(angleRad);
+                
+                const travelRange = Math.abs(w * sin) + Math.abs(h * cos);
+                const p = (percentage / 100 - 0.5) * travelRange;
+                
+                const cx = w / 2 + p * sin;
+                const cy = h / 2 - p * cos;
+
+                const linePoints = [];
+                const C = -cx * sin + cy * cos;
+
+                if (Math.abs(cos) > 1e-6) {
+                    let y0 = C / cos; if (y0 >= 0 && y0 <= h) linePoints.push({x:0, y:y0});
+                    let y1 = (C + w*sin) / cos; if (y1 >= 0 && y1 <= h) linePoints.push({x:w, y:y1});
+                }
+                if (Math.abs(sin) > 1e-6) {
+                    let x0 = -C / sin; if (x0 > 0 && x0 < w) linePoints.push({x:x0, y:0});
+                    let x1 = (h*cos - C) / sin; if (x1 > 0 && x1 < w) linePoints.push({x:x1, y:h});
+                }
+                
+                const polygonPoints = [...linePoints];
+                const corners = [{x:w, y:0}, {x:w, y:h}, {x:0, y:h}, {x:0, y:0}];
+                corners.forEach(corner => {
+                    if (corner.x * sin - corner.y * cos + C > 0) {
+                        polygonPoints.push(corner);
+                    }
+                });
+
+                const center = polygonPoints.reduce((acc, p) => ({x: acc.x + p.x / polygonPoints.length, y: acc.y + p.y / polygonPoints.length}), {x:0, y:0});
+                polygonPoints.sort((a,b) => Math.atan2(a.y - center.y, a.x - center.x) - Math.atan2(b.y - center.y, b.x - center.x));
+
+                return { polygonPoints, linePoints };
+            }
+
+            function updateSlider(percentage) {
+                sliderPercentage = percentage;
+                sliderValueDisplay.textContent = `${Math.round(percentage)}%`;
+
+                const w = previewWrapper.clientWidth;
+                const h = previewWrapper.clientHeight;
+                const { polygonPoints } = calculateClipData(sliderAngleValue, percentage, w, h);
+                const polygonString = polygonPoints.map(p => `${(p.x/w)*100}% ${(p.y/h)*100}%`).join(', ');
+                previewAfter.style.clipPath = `polygon(${polygonString})`;
+                
+                const angleRad = sliderAngleValue * Math.PI / 180;
+                const travelRange = Math.abs(w * Math.sin(angleRad)) + Math.abs(h * Math.cos(angleRad));
+                const p = (percentage / 100 - 0.5) * travelRange;
+                const cx = w / 2 + p * Math.sin(angleRad);
+                const cy = h / 2 - p * Math.cos(angleRad);
+                
+                sliderHandle.style.left = `${cx}px`;
+                sliderHandle.style.top = `${cy}px`;
+                sliderHandle.style.transform = `translate(-50%, -50%) rotate(${sliderAngleValue}deg)`;
+            }
+
+            function updateAll() {
+                updateEditorImage(beforeImage, beforeState);
+                updateEditorImage(afterImage, afterState);
+                updatePreviewImage(previewBeforeImg, beforeState);
+                updatePreviewImage(previewAfterImg, afterState);
+            }
+            
+            function checkGenerateButton() {
+                generateBtn.disabled = !(beforeState.img && afterState.img);
+            }
+
+            generateBtn.addEventListener('click', () => {
+                if (!beforeState.img || !afterState.img) return;
+
+                // Use actual preview dimensions
+                const actualWidth = previewWrapper.clientWidth;
+                const actualHeight = previewWrapper.clientHeight;
+                
+                // Update canvas size to match preview
+                canvas.width = actualWidth;
+                canvas.height = actualHeight;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#e5e7eb';
+                ctx.fillRect(0, 0, actualWidth, actualHeight);
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
+                const drawImageOnCanvas = (state) => {
+                    if (!state.img) return;
+                    const { x, y, w, h } = computeImageRect(state, actualWidth, actualHeight);
+                    ctx.drawImage(state.img, x, y, w, h);
+                };
+
+                drawImageOnCanvas(beforeState);
+                
+                ctx.save();
+                const { polygonPoints, linePoints } = calculateClipData(sliderAngleValue, sliderPercentage, actualWidth, actualHeight);
+                ctx.beginPath();
+                polygonPoints.forEach((p, i) => {
+                    if (i === 0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                });
+                ctx.closePath();
+                ctx.clip();
+                drawImageOnCanvas(afterState);
+                ctx.restore();
+
+                if(linePoints.length >= 2) {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(linePoints[0].x, linePoints[0].y);
+                    ctx.lineTo(linePoints[1].x, linePoints[1].y);
+                    ctx.stroke();
+                }
+
+                downloadLink.href = canvas.toDataURL('image/jpeg', 0.9);
+                downloadLink.download = 'comparativa-antes-despues.jpg';
+                downloadLink.click();
+            });
+            
+            updateSlider(50);
+            checkGenerateButton();
+        });
+    </script>
+</body>
+</html>
